@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Black-tinted counterpart to dock_band: same shape and alpha. Pairs
+     with light text on a dark wallpaper; the white dock_band is the one
+     used for dark text on a bright wallpaper. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+  <corners android:radius="28dp"/>
+  <solid android:color="#14000000"/>
+</shape>

@@ -1,0 +1,29 @@
+// Optional: tools/build-launcher.sh builds this without Gradle.
+// Kept so the project opens in Android Studio.
+apply plugin: 'com.android.application'
+
+android {
+    namespace 'com.oxylab.tvhome'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "com.oxylab.tvhome"
+        minSdk 26          // Android 8.0; this TV is SDK 31
+        targetSdk 34
+        versionCode 1
+        versionName "1.0"
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
+    }
+
+    buildTypes {
+        debug { minifyEnabled false }
+    }
+}
+
+// No AndroidX on purpose: the framework widgets keep the APK ~90 KB and the
+// running launcher ~36 MB PSS, which matters on a 1.8 GB TV.
+dependencies { }

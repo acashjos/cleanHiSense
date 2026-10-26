@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.oxylab.tvhome"
+    android:versionCode="1"
+    android:versionName="1.0">
+
+  <uses-sdk android:minSdkVersion="26" android:targetSdkVersion="34"/>
+
+  <!-- Android 11+ hides other packages unless they are declared here.
+       Without this the app grid silently comes up empty. -->
+  <queries>
+    <intent>
+      <action android:name="android.intent.action.MAIN"/>
+      <category android:name="android.intent.category.LEANBACK_LAUNCHER"/>
+    </intent>
+    <intent>
+      <action android:name="android.intent.action.MAIN"/>
+      <category android:name="android.intent.category.LAUNCHER"/>
+    </intent>
+  </queries>
+
+  <!-- The Custom image source can point at a folder on shared storage; the
+       in-app folder browser lists that folder and reads its images directly
+       by path. No permission is needed to *list* directories on most TVs,
+       but reading the image bytes does require this. -->
+  <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
+      android:maxSdkVersion="32"/>
+  <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>
+
+  <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+  <uses-permission android:name="android.permission.ACCESS_WIFI_STATE"/>
+  <!-- The weather widget reads the TV's fused/network location fix (there
+       is no GPS). If the user declines, it quietly falls back to a
+       public-IP lookup. -->
+  <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+  <uses-permission android:name="android.permission.EXPAND_STATUS_BAR"/>
+  <!-- Wallpaper's Unsplash mode downloads a photo over HTTPS. -->
+  <uses-permission android:name="android.permission.INTERNET"/>
+  <!-- Querying (not toggling) Bluetooth adapter state needs this on
+       Android 12+; see QuickPanelActivity for why there is no toggle. -->
+  <uses-permission android:name="android.permission.BLUETOOTH_CONNECT"/>
+  <!-- The <queries> block above only covers apps with a launcher activity.
+       Background Tasks (QuickPanelActivity) needs app names for whatever
+       posts an ongoing notification, including launcher-less daemons like
+       the AirPlay receiver or the TV remote service - package-visibility
+       filtering otherwise hides those and appLabel() falls back to the
+       raw package name. Fine for a sideloaded, non-Play app. -->
+  <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES"/>
+
+  <uses-feature android:name="android.software.leanback" android:required="true"/>
+  <uses-feature android:name="android.hardware.touchscreen" android:required="false"/>
+
+  <application
+      android:label="@string/app_name"
+      android:icon="@drawable/ic_launcher"
+      android:banner="@drawable/ic_banner"
+      android:theme="@style/TvHomeTheme"
+      android:hardwareAccelerated="true"
+      android:largeHeap="false">
+
+    <activity
+        android:name=".HomeActivity"
+        android:exported="true"
+        android:launchMode="singleTask"
+        android:stateNotNeeded="true"
+        android:excludeFromRecents="true"
+        android:screenOrientation="landscape"
+        android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|uiMode"
+        android:theme="@style/TvHomeTheme">
+      <intent-filter android:priority="1000">
+        <action android:name="android.intent.action.MAIN"/>
+        <category android:name="android.intent.category.HOME"/>
+        <category android:name="android.intent.category.DEFAULT"/>
+        <category android:name="android.intent.category.LEANBACK_LAUNCHER"/>
+      </intent-filter>
+    </activity>
+
+    <!-- The remote's gear button: SystemUI launches this intent, and the
+         stock launcher used to own it.  See NotificationPanelActivity. -->
+    <activity
+        android:name=".NotificationPanelActivity"
+        android:exported="true"
+        android:excludeFromRecents="true"
+        android:theme="@android:style/Theme.NoDisplay">
+      <intent-filter>
+        <action android:name="android.app.action.TOGGLE_NOTIFICATION_HANDLER_PANEL"/>
+        <action android:name="android.app.action.OPEN_NOTIFICATION_HANDLER_PANEL"/>
+        <category android:name="android.intent.category.DEFAULT"/>
+      </intent-filter>
+    </activity>
+
+    <activity
+        android:name=".QuickPanelActivity"
+        android:exported="false"
+        android:excludeFromRecents="true"
+        android:launchMode="singleTop"
+        android:theme="@style/QuickPanelTheme"/>
+
+    <activity
+        android:name=".RemoteKeysActivity"
+        android:exported="false"
+        android:excludeFromRecents="true"
+        android:theme="@style/QuickPanelTheme"/>
+
+    <activity
+        android:name=".WallpaperActivity"
+        android:exported="false"
+        android:excludeFromRecents="true"
+        android:theme="@style/QuickPanelTheme"/>
+
+    <!-- Lets the quick-settings panel's notifications section read current
+         notifications. The user grants this once from Settings > Apps >
+         Special app access > Notification access - the panel links
+         straight there when it isn't granted yet. -->
+    <service
+        android:name=".TvNotificationListener"
+        android:exported="true"
+        android:label="TV Home notifications"
+        android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+      <intent-filter>
+        <action android:name="android.service.notification.NotificationListenerService"/>
+      </intent-filter>
+    </service>
+
+    <activity
+        android:name=".InputsActivity"
+        android:exported="false"
+        android:excludeFromRecents="true"
+        android:theme="@android:style/Theme.DeviceDefault.Dialog.NoActionBar"/>
+
+    <!-- See KeyService: the app/gear buttons are consumed by the window
+         policy before any app sees them; key filtering runs earlier. -->
+    <service
+        android:name=".KeyService"
+        android:exported="true"
+        android:label="TV Home remote keys"
+        android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+      <intent-filter>
+        <action android:name="android.accessibilityservice.AccessibilityService"/>
+      </intent-filter>
+      <meta-data
+          android:name="android.accessibilityservice"
+          android:resource="@xml/key_service"/>
+    </service>
+  </application>
+</manifest>

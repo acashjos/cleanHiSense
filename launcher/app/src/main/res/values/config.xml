@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  TV Home configuration.  Everything you are likely to want to change
+  lives in this one file; rebuild with tools/build-launcher.sh afterwards.
+-->
+<resources>
+
+  <!-- Number of columns in the app grid below the dock. -->
+  <integer name="columns">6</integer>
+
+  <!-- The dock: the row of big tiles at the bottom of the screen, in
+       order, left to right.  Add or remove <item> lines freely - the
+       dock sizes itself to however many you list.  A package that is
+       not installed (or that you disabled) is skipped silently.
+
+       This is only the DEFAULT.  Long-press any app in the grid for
+       "Pin to Tray", which overrides this list from SharedPreferences
+       (same pattern as the remote button mapping below) - once the user
+       has pinned anything, editing this array no longer has an effect
+       unless app data is cleared.
+
+       There is no unpin, so the dock always stays at least 4 full:
+       HomeActivity.fillDock() tops up whatever resolves from here (or
+       from SharedPreferences) with the first installed apps not already
+       in it - a fresh install, or one entry here that isn't installed,
+       still lands on a full dock rather than a half-empty one. An app
+       already in the dock shows "Pin to Tray" disabled in its long-press
+       menu, since pinning it again would have nothing to do. -->
+  <string-array name="dock_apps">
+    <item>com.nuvio.app</item>
+    <item>com.google.android.youtube.tv</item>
+    <item>com.vt.tv.tvcenter</item>
+    <item>com.spotify.tv.android</item>
+  </string-array>
+
+  <!-- Packages never shown in the grid (they are reachable elsewhere). -->
+  <string-array name="hidden_apps">
+    <item>com.oxylab.tvhome</item>
+    <item>com.android.tv.settings</item>
+  </string-array>
+
+  <!-- Greeting shown top left.  Empty string = time-of-day greeting. -->
+  <string name="greeting"></string>
+
+  <!-- ===== Wallpaper =====
+       The real wallpaper system - see "Wallpaper" in the quick-settings
+       panel. Off by default (pitch black). The mode, schedule, chosen
+       color/file and the Unsplash cache all live in SharedPreferences
+       once the user turns it on (same pattern as app_keys/dock_apps
+       above); nothing here needs editing for day-to-day use.
+
+       Unsplash mode needs a free personal API key - unsplash.com's old
+       no-key endpoint was shut down in 2024. Get one in about 2 minutes:
+       unsplash.com/developers -> sign in -> New Application -> copy the
+       Access Key. The free "Demo" tier (50 requests/hour, no review
+       needed) is far more than enough for a once-a-day refresh. Until a
+       key is set, Unsplash mode shows a prompt instead of downloading;
+       custom file and solid color work with no key at all.
+
+       The key normally gets typed straight into the Wallpaper screen's
+       "API key" field (stored in SharedPreferences, same as everything
+       else above) - that's the primary path. This one here is just a
+       fallback for baking a key in at build time instead of typing it on
+       the TV; the in-app field always wins when both are set. Search
+       tags are in-app only, no config.xml equivalent. -->
+  <string name="unsplash_access_key"></string>
+  <!-- Sent as the API's required attribution utm_source parameter. -->
+  <string name="wallpaper_app_name">cleanyourtv-launcher</string>
+
+  <!-- ===== Remote key helpers =====
+       OFF, and on THIS TV they should stay off.  Measured 2026-10-25 on
+       this exact set: with KeyService bound, the gear button and the
+       YouTube button both worked again - and holding Volume Up stopped
+       ramping, becoming one step per press.  The service already passes
+       unmapped keys straight through, so it is the binding itself that
+       costs the key repeats, not the filtering.  It is all or nothing.
+       To turn it on anyway, see "Remote keys" in the README. -->
+  <bool name="input_key_service">false</bool>
+  <bool name="home_key_service">true</bool>
+
+  <!-- Keycodes that should open the Inputs dropdown. -->
+  <string name="input_key_keycodes"></string>
+  <!-- Keycodes that should open Settings while Home is in front.
+       The gear button is NOT handled here: it is KEYCODE_NOTIFICATION (83,
+       scancode 598) and the window policy consumes it before any app sees
+       it, so it is claimed through the notification-panel intent in
+       AndroidManifest.xml instead, which also makes it work inside apps. -->
+  <string name="settings_key_keycodes">83</string>
+  <!-- Scancodes, for buttons the TV logs as KEY_UNKNOWN / KEY_PROGRAM.
+       Read them with: getevent -lt -->
+  <string name="settings_key_scancodes"></string>
+  <!-- The branded buttons on this TV's remote, as "keycode|Label".
+       Keycodes measured on this set with getevent -lt / interceptKeyTq.
+       The quick-settings panel lists these under "Remote buttons" so the
+       app each one launches can be changed without rebuilding; a choice
+       made there is stored in SharedPreferences and overrides app_keys. -->
+  <string-array name="remote_buttons">
+    <item>265|Netflix</item>
+    <item>190|YouTube</item>
+    <item>295|Prime Video</item>
+    <item>607|Disney+</item>
+    <item>606|Tubi</item>
+    <item>709|Hisense</item>
+  </string-array>
+
+  <!-- "keycode=package" pairs, comma separated: the DEFAULTS for the
+       buttons above, used until something is chosen in the panel. -->
+  <string name="app_keys">190=com.google.android.youtube.tv,295=com.stremio.one,607=com.disney.disneyplus,606=com.tubitv,709=com.nuvio.app,265=ca.bellmedia.cravetv</string>
+
+  <!-- What the TV lands on at power-on.  Never set both. -->
+  <bool name="power_on_home">false</bool>
+  <bool name="boot_to_live_tv">false</bool>
+</resources>

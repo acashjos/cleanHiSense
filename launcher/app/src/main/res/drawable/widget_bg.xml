@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Backdrop behind the time and weather blocks. Same translucency as the
+     tray band (dock_band) and no border; pairs with dark overlay text.
+     Focus brightens the fill in place rather than adding a stroke, so the
+     block reads as selected without gaining an edge. -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+  <item android:state_focused="true">
+    <shape android:shape="rectangle">
+      <corners android:radius="24dp"/>
+      <solid android:color="#B3FFFFFF"/>
+    </shape>
+  </item>
+  <item>
+    <shape android:shape="rectangle">
+      <corners android:radius="24dp"/>
+      <solid android:color="#14FFFFFF"/>
+    </shape>
+  </item>
+</selector>

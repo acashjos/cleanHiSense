@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Black-tinted counterpart to pill_bg: same shape and alphas. Pairs
+     with light text/icon on a dark wallpaper; the white pill_bg is the
+     one used for dark text on a bright wallpaper. -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+  <item android:state_focused="true">
+    <shape android:shape="rectangle">
+      <corners android:radius="22dp"/>
+      <solid android:color="#59000000"/>
+    </shape>
+  </item>
+  <!-- Unfocused: no plate at all, just the bare glyph. The frosted
+       circle only appears once the button takes focus. -->
+  <item android:drawable="@android:color/transparent"/>
+</selector>
