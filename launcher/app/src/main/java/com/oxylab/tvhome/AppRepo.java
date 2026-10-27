@@ -39,6 +39,17 @@ final class AppRepo {
         return out;
     }
 
+    /** Display name for a package, or the package name itself if it can't
+     *  be resolved (e.g. it was just uninstalled). */
+    static String label(Context ctx, String pkg) {
+        try {
+            PackageManager pm = ctx.getPackageManager();
+            return pm.getApplicationLabel(pm.getApplicationInfo(pkg, 0)).toString();
+        } catch (Throwable t) {
+            return pkg;
+        }
+    }
+
     private static void collect(PackageManager pm, List<AppEntry> out,
                                 Set<String> seen, String category, boolean leanback) {
         Intent probe = new Intent(Intent.ACTION_MAIN).addCategory(category);

@@ -3,7 +3,8 @@
 Hisense SmartTV 4K (`lushan-NF`), Android 12 / Google TV, MediaTek.
 Build `STT2.230929.001.102`. Captured 2026-10-25 08:46.
 
-Re-enable everything with `tools/restore.sh`, or one package with:
+Re-enable everything with `tools/restore.sh` (and put it all back with
+`tools/apply.sh`), or one package with:
 ```
 adb -s 10.0.0.97:5555 shell pm enable --user 0 <package>
 ```

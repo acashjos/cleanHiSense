@@ -39,6 +39,7 @@ tools/build-launcher.sh                        # build + install the launcher
 tools/build-launcher.sh --build                # build only
 tools/disable.sh <pkg> [...]                   # disable, with a guard list
 tools/restore.sh                               # undo everything
+tools/apply.sh                                 # re-apply everything
 tools/adb-closed.py 10.0.0.97                  # prove ADB is shut
 ```
 
@@ -59,6 +60,22 @@ tools/restore.sh              # then: adb -s 10.0.0.97:5555 reboot
 tools/restore.sh --dns-only   # just put DNS back to opportunistic
 ```
 
+Re-apply everything after a restore (re-disable the packages, make TV Home
+the launcher again, re-enable its services, put AdGuard DNS back):
+
+```bash
+tools/apply.sh                  # then: adb -s 10.0.0.97:5555 reboot
+tools/apply.sh --launcher-only  # just Home + its services
+tools/apply.sh --dns-only       # just put AdGuard DNS back
+```
+
+`apply.sh` does not build the launcher - run `tools/build-launcher.sh`
+first if `com.oxylab.tvhome` is not installed. It also does not re-create
+the deleted Wi-Fi network `oxylab_mo`.
+
+If the stock launcher ever reappears (for example after a reboot), run
+`tools/apply.sh` again - it re-disables it and hands Home back to TV Home.
+
 Turn off ad-blocking DNS only:
 
 ```bash
@@ -78,18 +95,34 @@ after editing.
 * **Hide an app from the grid** — add it to `hidden_apps`.
 * **Greeting** — set `greeting` to fixed text, or leave empty for a
   time-of-day greeting.
-* **Wallpaper** — drop a `wallpaper.png` into
-  `launcher/app/src/main/res/drawable/` and set `use_wallpaper` to `true`.
-  The default is pitch black, which is what the design is built around.
+* **Wallpaper** — off by default (pitch black, which is what the design is
+  built around). Turn it on and pick a source from the quick-settings
+  panel's **Wallpaper** screen; the mode, schedule and chosen image/color
+  live in `SharedPreferences`, not here. `unsplash_access_key` is only a
+  build-time fallback for the Unsplash source - the in-app field wins.
 
 ### Remote keys
 
-`settings_key_keycodes`, `input_key_keycodes` and `app_keys` map remote
-buttons while Home is in front. They are plain key events, so **no
-accessibility key-filter service is used** — which matters: on this class of
-firmware a bound key-filtering service can swallow key *repeats*, turning a
-ramping volume into one step per press. Your volume ramp is intact and
-nothing here puts it at risk.
+The stock launcher owned the remote's app buttons and the gear button, so
+disabling it broke them. `KeyService` is an **accessibility key-filter
+service** that catches those keys before the window policy consumes them —
+the one hook that runs earlier than dispatch. It is what makes the buttons
+work, and it is on by default (enable/disable it in Settings →
+Accessibility).
+
+`remote_buttons` in `config.xml` lists the branded buttons as
+`keycode|Label`, and `app_keys` maps each keycode to the app it launches.
+The quick-settings panel's **Remote buttons** screen changes those without a
+rebuild (stored in `SharedPreferences`, and it wins over `config.xml`).
+`settings_key_keycodes` and `input_key_keycodes` do the same for the
+settings and inputs keys.
+
+The cost is real and accepted: **binding the service stops Volume Up/Down
+from ramping** — holding the key steps once per press instead of ramping.
+The service passes every unmapped key straight through, so it is the
+binding itself, not the filtering, that costs the repeat. Turning the
+service off in Settings restores the ramp and loses the app buttons again;
+it is all or nothing.
 
 Find a button's keycode with:
 
@@ -142,4 +175,4 @@ the APK at ~90 KB and the running launcher at ~36 MB PSS on a 1.8 GB TV.
 `backup/<timestamp>/` holds the package lists, `getprop` and all three
 settings namespaces as they were before any change.
 `backup/disabled-by-cleanyourtv.txt` is the exact list `tools/restore.sh`
-replays.
+replays and `tools/apply.sh` re-disables.

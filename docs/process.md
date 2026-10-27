@@ -32,7 +32,7 @@ launcher/app/src/main/AndroidManifest.xml        activities/services/queries
 launcher/tvhome.apk                              last built output
 tools/build-launcher.sh                          build + install (no Gradle)
 tools/tv.py                                       adb wrapper + screenshot
-tools/disable.sh / restore.sh                    debloat tooling (unrelated to launcher work)
+tools/disable.sh / restore.sh / apply.sh         debloat tooling (unrelated to launcher work)
 docs/DISABLED.md                                 what debloat disabled and why
 docs/feats.md                                     feature list, in order
 ```

@@ -7,7 +7,7 @@ covers the methodology; git history has the build-up.
 1. **Debloated TV** - identify and `pm disable-user` manufacturer
    telemetry, ACR, VIDAA ad/content providers, and unused preloaded apps,
    in small verified batches, with a backup + restore script
-   (`backup/`, `tools/disable.sh`, `tools/restore.sh`).
+   (`backup/`, `tools/disable.sh`, `tools/restore.sh`, `tools/apply.sh`).
 
 2. **Ad-blocking Private DNS** - Android's Private DNS set to AdGuard.
 
@@ -99,3 +99,16 @@ covers the methodology; git history has the build-up.
     edge, and the Inputs menu opens to the left of its pill (bottom-aligned
     and clamped to the screen) (`Weather`, `WeatherView`,
     `WeatherGlyphView`, `HomeActivity.updateClock`, `IconButton.setTheme`).
+
+11. **Media control row** - Home shows a compact previous / play-pause /
+    next row with the playing app's name (`Spotify`) after it, squeezed
+    into the margin directly below the dock tray (the tray itself never
+    moves) and above the grid, so it scrolls away with page 1. It is
+    hidden entirely when no media app has an active session, and when
+    something is playing Home opens focused on the play/pause button. It
+    is driven by `MediaWatcher` over the system's active media sessions,
+    enumerated through the already-granted notification listener
+    (`TvNotificationListener`), so it needs no new permission; `NONE` and
+    `ERROR` sessions (e.g. a disconnected Bluetooth route) are ignored and
+    a playing session is preferred over a paused one. The play/pause
+    glyph swaps with the session state (`IconView.MEDIA_*`).

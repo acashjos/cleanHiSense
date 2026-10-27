@@ -56,6 +56,19 @@ public class HomeActivity extends Activity {
     private int weatherGen;
     private boolean askedLocation;
 
+    // Media row: squeezed into the margin below the tray band (which never
+    // moves for it), still on page 1, so it sits above the grid (below the
+    // fold). Fed by MediaWatcher from the system's active media sessions -
+    // no extra permission needed. Hidden when no media app is running.
+    private LinearLayout mediaRow;
+    private TextView mediaApp;
+    private IconButton mediaPlay;
+    private final List<IconButton> mediaButtons = new ArrayList<>();
+    private MediaWatcher media;
+    private boolean mediaVisible;
+    private boolean mediaPlaying;
+    private int mediaIdx = 1;   // 0 = previous, 1 = play/pause, 2 = next
+
     private final List<Tile> dockTiles = new ArrayList<>();
     private final List<Tile> gridTiles = new ArrayList<>();
     private final List<IconButton> pills = new ArrayList<>();
@@ -83,7 +96,8 @@ public class HomeActivity extends Activity {
     // Explicit focus model.  Navigation is computed here rather than left
     // to FocusFinder, which on this layout happily jumps sideways along
     // the dock instead of down into the off-screen grid.
-    private static final int ZONE_TOP = 0, ZONE_DOCK = 1, ZONE_GRID = 2, ZONE_BAR = 3;
+    private static final int ZONE_TOP = 0, ZONE_DOCK = 1, ZONE_GRID = 2, ZONE_BAR = 3,
+            ZONE_MEDIA = 4;
     private int zone = ZONE_DOCK;
     private int pillIdx = 0;
     private int barIdx = 0;    // 0 = clock, 1 = weather
@@ -116,6 +130,7 @@ public class HomeActivity extends Activity {
         buildUi();
         loadApps();
         updateClock();
+        initMedia();
 
         // Lay out page 1 to exactly one screen so the grid sits below the
         // fold and Down from the dock scrolls it up.
@@ -128,7 +143,14 @@ public class HomeActivity extends Activity {
                     page1.getLayoutParams().height = h;
                     page1.requestLayout();
                     root.post(() -> {
-                        zone = ZONE_DOCK;
+                        // If music is already playing when Home loads, land
+                        // on the play button; otherwise start on the dock.
+                        if (mediaVisible && mediaPlaying) {
+                            zone = ZONE_MEDIA;
+                            mediaIdx = 1;
+                        } else {
+                            zone = ZONE_DOCK;
+                        }
                         applyFocus(false);
                     });
                 }
@@ -347,6 +369,76 @@ public class HomeActivity extends Activity {
         blp.gravity = Gravity.BOTTOM;
         blp.bottomMargin = dp(46);
         page1.addView(bottom, blp);
+
+        // Media row: squeezed into the margin below the tray band, so the
+        // tray itself never moves. A sibling of `bottom` on page1 rather
+        // than a child of it - otherwise it would grow that column and
+        // push the dock up. Bare glyphs, no backdrop, hidden until a media
+        // session shows up.
+        mediaRow = new LinearLayout(this);
+        mediaRow.setOrientation(LinearLayout.HORIZONTAL);
+        mediaRow.setGravity(Gravity.CENTER_VERTICAL);
+        mediaRow.setClipChildren(false);
+        mediaRow.setClipToPadding(false);
+        mediaRow.setVisibility(View.GONE);
+
+        mediaButton(IconView.MEDIA_PREV, () -> { if (media != null) media.previous(); });
+        mediaPlay = mediaButton(IconView.MEDIA_PLAY, () -> { if (media != null) media.toggle(); });
+        mediaButton(IconView.MEDIA_NEXT, () -> { if (media != null) media.next(); });
+
+        mediaApp = new TextView(this);
+        style(mediaApp, 20f, 0xFFFFFFFF, 400);
+        mediaApp.setSingleLine(true);
+        LinearLayout.LayoutParams alp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        alp.leftMargin = dp(18);
+        mediaRow.addView(mediaApp, alp);
+
+        FrameLayout.LayoutParams mlp = new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        mlp.gravity = Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL;
+        mlp.bottomMargin = dp(2);
+        page1.addView(mediaRow, mlp);
+    }
+
+    /** One circular button in the media row, kept in mediaButtons so the
+     *  play/pause glyph and the light/dark theme can be updated in place.
+     *  No label: the row has only the margin below the tray to live in. */
+    private IconButton mediaButton(int kind, Runnable onClick) {
+        IconButton b = new IconButton(this, kind, 0, null, outfit, () -> onWidgetFocus(), false);
+        b.setOnClickListener(v -> onClick.run());
+        mediaButtons.add(b);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        lp.leftMargin = dp(10);
+        mediaRow.addView(b, lp);
+        return b;
+    }
+
+    // ------------------------------------------------------------- media
+
+    private void initMedia() {
+        media = new MediaWatcher(this);
+        media.start(this::onMedia);
+    }
+
+    /** MediaWatcher callback: show/hide the row and keep the play/pause
+     *  glyph and the app name in sync with the session. */
+    private void onMedia(boolean visible, boolean playing, String appLabel) {
+        mediaVisible = visible;
+        mediaPlaying = playing;
+        if (mediaRow != null) mediaRow.setVisibility(visible ? View.VISIBLE : View.GONE);
+        if (mediaApp != null) mediaApp.setText(appLabel);
+        if (mediaPlay != null) {
+            mediaPlay.setIcon(playing ? IconView.MEDIA_PAUSE : IconView.MEDIA_PLAY);
+        }
+        // If the row vanished under the cursor, drop back to the dock
+        // rather than leaving focus on a GONE view.
+        if (!visible && zone == ZONE_MEDIA && mediaRow != null
+                && mediaRow.isAttachedToWindow()) {
+            zone = ZONE_DOCK;
+            applyFocus(false);
+        }
     }
 
     // ------------------------------------------------------------- apps
@@ -684,10 +776,29 @@ public class HomeActivity extends Activity {
                 if (key == KeyEvent.KEYCODE_DPAD_LEFT)  dockIdx = Math.max(0, dockIdx - 1);
                 else if (key == KeyEvent.KEYCODE_DPAD_RIGHT) dockIdx = Math.min(nDock - 1, dockIdx + 1);
                 else if (key == KeyEvent.KEYCODE_DPAD_UP && nPill > 0) zone = ZONE_TOP;
-                else if (key == KeyEvent.KEYCODE_DPAD_DOWN && nGrid > 0) {
+                else if (key == KeyEvent.KEYCODE_DPAD_DOWN) {
+                    // The media row, when present, is the row between the
+                    // tray and the grid.
+                    if (mediaVisible) {
+                        zone = ZONE_MEDIA;
+                        mediaIdx = 1;
+                    } else if (nGrid > 0) {
+                        zone = ZONE_GRID;
+                        // Enter the grid under the dock tile you were on.
+                        gridIdx = clamp(dockIdx, 0, Math.min(columns, nGrid) - 1);
+                    }
+                }
+                break;
+
+            case ZONE_MEDIA:
+                if (key == KeyEvent.KEYCODE_DPAD_LEFT) mediaIdx = Math.max(0, mediaIdx - 1);
+                else if (key == KeyEvent.KEYCODE_DPAD_RIGHT) mediaIdx = Math.min(2, mediaIdx + 1);
+                else if (key == KeyEvent.KEYCODE_DPAD_UP && nDock > 0) {
+                    zone = ZONE_DOCK;
+                    dockIdx = clamp(dockIdx, 0, nDock - 1);
+                } else if (key == KeyEvent.KEYCODE_DPAD_DOWN && nGrid > 0) {
                     zone = ZONE_GRID;
-                    // Enter the grid under the dock tile you were on.
-                    gridIdx = clamp(dockIdx, 0, Math.min(columns, nGrid) - 1);
+                    gridIdx = clamp(gridIdx, 0, nGrid - 1);
                 }
                 break;
 
@@ -700,6 +811,7 @@ public class HomeActivity extends Activity {
                     if (col < columns - 1 && gridIdx + 1 < nGrid) gridIdx++;
                 } else if (key == KeyEvent.KEYCODE_DPAD_UP) {
                     if (row > 0) gridIdx -= columns;
+                    else if (mediaVisible) { zone = ZONE_MEDIA; mediaIdx = 1; }
                     else { zone = ZONE_DOCK; dockIdx = clamp(col, 0, nDock - 1); }
                 } else if (key == KeyEvent.KEYCODE_DPAD_DOWN) {
                     if (gridIdx + columns < nGrid) gridIdx += columns;
@@ -734,6 +846,10 @@ public class HomeActivity extends Activity {
             case ZONE_GRID:
                 if (!gridTiles.isEmpty())
                     target = gridTiles.get(clamp(gridIdx, 0, gridTiles.size() - 1));
+                break;
+            case ZONE_MEDIA:
+                if (!mediaButtons.isEmpty())
+                    target = mediaButtons.get(clamp(mediaIdx, 0, mediaButtons.size() - 1));
                 break;
         }
         if (target == null) return;
@@ -850,6 +966,8 @@ public class HomeActivity extends Activity {
         // text a dark one. Pairing dark text with a dark tint is the one
         // combination that leaves nothing readable.
         for (IconButton p : pills) p.setTheme(dark);
+        for (IconButton b : mediaButtons) b.setTheme(dark);
+        if (mediaApp != null) mediaApp.setTextColor(dark ? 0xFF000000 : 0xFFFFFFFF);
         if (weatherView != null) weatherView.setTheme(dark);
         int backdrop = dark ? R.drawable.widget_bg : R.drawable.widget_bg_dark;
         if (timeWidget != null) timeWidget.setBackgroundResource(backdrop);
@@ -999,6 +1117,8 @@ public class HomeActivity extends Activity {
         });
         applyTextTheme();
 
+        if (media != null) media.refresh();
+
         weather = Weather.cached(this);
         if (weatherView != null) {
             // If the last attempt failed, keep showing the offline state
@@ -1042,6 +1162,7 @@ public class HomeActivity extends Activity {
 
     @Override protected void onDestroy() {
         super.onDestroy();
+        if (media != null) media.stop();
         WallpaperManager.detachHome(root);
     }
 }

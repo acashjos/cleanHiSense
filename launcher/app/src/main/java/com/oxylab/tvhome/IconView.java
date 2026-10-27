@@ -28,6 +28,10 @@ class IconView extends View {
     static final int INPUT = 8;
     static final int APPS = 9;
     static final int WALLPAPER = 10;
+    static final int MEDIA_PREV = 11;
+    static final int MEDIA_PLAY = 12;
+    static final int MEDIA_PAUSE = 13;
+    static final int MEDIA_NEXT = 14;
 
     private int kind = WIFI;
     private final Paint stroke = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -49,6 +53,12 @@ class IconView extends View {
     void setTint(int color) {
         stroke.setColor(color);
         fill.setColor(color);
+        invalidate();
+    }
+
+    /** Swaps the glyph in place - used by the media row's play/pause button. */
+    void setKind(int k) {
+        kind = k;
         invalidate();
     }
 
@@ -203,6 +213,44 @@ class IconView extends View {
                 c.clipRect(cx - fw, cy - fh, cx + fw, cy + fh);
                 c.drawPath(path, fill);
                 c.restore();
+                break;
+            }
+            case MEDIA_PLAY: {
+                float r = s * 0.3f;
+                path.moveTo(cx - r * 0.55f, cy - r);
+                path.lineTo(cx - r * 0.55f, cy + r);
+                path.lineTo(cx + r * 0.85f, cy);
+                path.close();
+                c.drawPath(path, fill);
+                break;
+            }
+            case MEDIA_PAUSE: {
+                float barW = s * 0.12f, half = s * 0.34f, gap = s * 0.11f;
+                float r = s * 0.03f;
+                c.drawRoundRect(cx - gap - barW, cy - half, cx - gap, cy + half, r, r, fill);
+                c.drawRoundRect(cx + gap, cy - half, cx + gap + barW, cy + half, r, r, fill);
+                break;
+            }
+            case MEDIA_NEXT: {
+                float r = s * 0.26f;
+                path.moveTo(cx - r * 0.95f, cy - r);
+                path.lineTo(cx - r * 0.95f, cy + r);
+                path.lineTo(cx + r * 0.45f, cy);
+                path.close();
+                c.drawPath(path, fill);
+                c.drawRoundRect(cx + r * 0.62f, cy - r,
+                        cx + r * 0.62f + s * 0.1f, cy + r, s * 0.03f, s * 0.03f, fill);
+                break;
+            }
+            case MEDIA_PREV: {
+                float r = s * 0.26f;
+                path.moveTo(cx + r * 0.95f, cy - r);
+                path.lineTo(cx + r * 0.95f, cy + r);
+                path.lineTo(cx - r * 0.45f, cy);
+                path.close();
+                c.drawPath(path, fill);
+                c.drawRoundRect(cx - r * 0.62f - s * 0.1f, cy - r,
+                        cx - r * 0.62f, cy + r, s * 0.03f, s * 0.03f, fill);
                 break;
             }
         }

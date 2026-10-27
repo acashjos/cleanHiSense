@@ -68,13 +68,19 @@
   <string name="wallpaper_app_name">cleanyourtv-launcher</string>
 
   <!-- ===== Remote key helpers =====
-       OFF, and on THIS TV they should stay off.  Measured 2026-10-25 on
-       this exact set: with KeyService bound, the gear button and the
-       YouTube button both worked again - and holding Volume Up stopped
-       ramping, becoming one step per press.  The service already passes
+       The remote-key service is KeyService, an accessibility service,
+       switched on and off from Settings > Accessibility - not from here.
+       See "Remote keys" in the README.
+
+       The two booleans below are legacy and unused by the code (nothing
+       reads them); they are kept only so an existing R.java keeps
+       resolving.  Do not wire behaviour to them.
+
+       Measured 2026-10-25 on this exact set: with KeyService bound, the
+       gear button and the YouTube button work again - but holding Volume
+       Up stops ramping, becoming one step per press.  The service passes
        unmapped keys straight through, so it is the binding itself that
-       costs the key repeats, not the filtering.  It is all or nothing.
-       To turn it on anyway, see "Remote keys" in the README. -->
+       costs the key repeats, not the filtering.  It is all or nothing. -->
   <bool name="input_key_service">false</bool>
   <bool name="home_key_service">true</bool>
 

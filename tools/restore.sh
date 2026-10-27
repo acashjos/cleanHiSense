@@ -15,7 +15,9 @@ if [[ "$mode" != "--dns-only" ]]; then
     while read -r pkg; do
       [[ -z "$pkg" ]] && continue
       echo -n "enable $pkg ... "
-      "${ADB[@]}" shell pm enable --user 0 "$pkg" 2>&1 | tr -d '\r'
+      # </dev/null: without it `adb shell` drains the loop's stdin (the log),
+      # so only the first package would ever be restored.
+      "${ADB[@]}" shell pm enable --user 0 "$pkg" </dev/null 2>&1 | tr -d '\r'
     done < "$LOG"
   fi
   # Hand Home back to the stock Google TV launcher.

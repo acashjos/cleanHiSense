@@ -38,6 +38,13 @@ class IconButton extends LinearLayout {
      *  IconView glyph for iconKind. */
     IconButton(Context ctx, int iconKind, int drawableRes, String text, Typeface tf,
                Runnable onFocusGained) {
+        this(ctx, iconKind, drawableRes, text, tf, onFocusGained, true);
+    }
+
+    /** showLabel=false gives a bare circular glyph with nothing underneath,
+     *  for the media row, where the vertical space is tight. */
+    IconButton(Context ctx, int iconKind, int drawableRes, String text, Typeface tf,
+               Runnable onFocusGained, boolean showLabel) {
         super(ctx);
         float density = ctx.getResources().getDisplayMetrics().density;
         setOrientation(VERTICAL);
@@ -79,25 +86,41 @@ class IconButton extends LinearLayout {
         iconWrap.addView(glyph, new FrameLayout.LayoutParams(glyphBox, glyphBox, Gravity.CENTER));
         addView(iconWrap, new LayoutParams(outer, outer));
 
-        label = new TextView(ctx);
-        label.setText(text);
-        label.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f);
-        label.setTextColor(0xFFF0F0F0);
-        if (tf != null) label.setTypeface(tf);
-        try { label.setFontVariationSettings("'wght' 600"); } catch (Throwable ignored) {}
-        label.setIncludeFontPadding(false);
-        label.setAlpha(0f);
-        LayoutParams llp = new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
-        llp.topMargin = Math.round(6 * density);
-        llp.gravity = Gravity.CENTER_HORIZONTAL;
-        addView(label, llp);
+        if (showLabel) {
+            label = new TextView(ctx);
+            label.setText(text);
+            label.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f);
+            label.setTextColor(0xFFF0F0F0);
+            if (tf != null) label.setTypeface(tf);
+            try { label.setFontVariationSettings("'wght' 600"); } catch (Throwable ignored) {}
+            label.setIncludeFontPadding(false);
+            label.setAlpha(0f);
+            LayoutParams llp = new LayoutParams(LayoutParams.WRAP_CONTENT,
+                    LayoutParams.WRAP_CONTENT);
+            llp.topMargin = Math.round(6 * density);
+            llp.gravity = Gravity.CENTER_HORIZONTAL;
+            addView(label, llp);
+        } else {
+            label = null;
+        }
 
         setOnFocusChangeListener((v, has) -> {
             iconWrap.animate().scaleX(has ? 1.07f : 1f).scaleY(has ? 1.07f : 1f)
                     .setDuration(140).setInterpolator(new DecelerateInterpolator()).start();
-            label.animate().alpha(has ? 1f : 0f).setDuration(140).start();
+            if (label != null) label.animate().alpha(has ? 1f : 0f).setDuration(140).start();
             if (has && onFocusGained != null) onFocusGained.run();
         });
+    }
+
+    /** Swaps the hand-drawn glyph (the media row's play/pause button). No
+     *  effect on a button built from a drawable resource. */
+    void setIcon(int kind) {
+        if (icon != null) icon.setKind(kind);
+    }
+
+    /** Changes the label that fades in on focus ("Play" / "Pause"). */
+    void setLabel(String text) {
+        if (label != null) label.setText(text);
     }
 
     /** Light or dark, to match whatever theme Home's overlay is currently
@@ -107,6 +130,6 @@ class IconButton extends LinearLayout {
         int color = dark ? 0xFF1A1A1A : 0xFFF0F0F0;
         if (icon != null) icon.setTint(color);
         if (image != null) image.setColorFilter(color, PorterDuff.Mode.SRC_IN);
-        label.setTextColor(color);
+        if (label != null) label.setTextColor(color);
     }
 }
